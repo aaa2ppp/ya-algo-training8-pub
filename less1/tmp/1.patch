@@ -1,0 +1,195 @@
+diff --git a/less1/b/main.go b/less1/b/main.go
+index 718e030..f27e668 100644
+--- a/less1/b/main.go
++++ b/less1/b/main.go
+@@ -13,131 +13,119 @@ import (
+ 
+ type solveFunc func(a, b, c float64, v [3]float64) float64
+ 
+-type StateFlag byte
++type stateFlag byte
+ 
+ const (
+-	GroceriesInHands StateFlag = 1 << iota
+-	GroceriesDone
+-	ParcelInHands
+-	ParcelDone
++	groceriesInHands stateFlag = 1 << iota
++	parcelInHands
++	groceriesDelivered
++	parcelDelivered
++	carryingMask  = groceriesInHands | parcelInHands
++	deliveredMask = groceriesDelivered | parcelDelivered
+ )
+ 
+ type state struct {
+ 	Place byte
+-	F     StateFlag
++	F     stateFlag
+ }
+ 
+-type Hop struct {
++type hop struct {
+ 	Place byte
+ 	Dist  float64
+ }
+ 
+-type visite struct {
+-	h int
+-	t float64
++type visit struct {
++	Hop int
++	T   float64
+ }
+ 
+ func solve(a, b, c float64, v [3]float64) float64 {
+ 	var (
+-		visited = make(map[state]visite, 256)
++		visited = make(map[state]visit, 256)
+ 		queue   = make([]state, 0, 256)
+ 	)
+ 
+-	goToNext := func(s state, vis visite, hops [2]Hop) {
++	rememberState := func(next state, vis visit) {
++		if visNext, ok := visited[next]; !ok || vis.T < visNext.T {
++			visited[next] = vis
++			queue = append(queue, next)
++		}
++	}
++
++	goToNextPlace := func(st state, vis visit, hops [2]hop) {
+ 		var speed float64
+-		switch {
+-		case s.F&(GroceriesInHands|ParcelInHands) == 0:
++		switch st.F & carryingMask {
++		case 0:
+ 			speed = v[0]
+-		case s.F&(GroceriesInHands|ParcelInHands) == (GroceriesInHands | ParcelInHands):
++		case carryingMask:
+ 			speed = v[2]
+-		default: // GroceriesInHands || ParcelInHands
++		default: // GroceriesInHands XOR ParcelInHands
+ 			speed = v[1]
+ 		}
+ 
+-		h := vis.h + 1
++		h := vis.Hop + 1
+ 		for _, hop := range hops {
+-			t := vis.t + hop.Dist/speed
+-
+-			next := s
++			t := vis.T + hop.Dist/speed
++			next := st
+ 			next.Place = hop.Place
+-
+-			if visNext, ok := visited[next]; !ok || t < visNext.t {
+-				visited[next] = visite{h, t}
+-				queue = append(queue, next)
+-			}
++			rememberState(next, visit{h, t})
+ 		}
+ 	}
+ 
+-	var ans float64 = 100500
+-	visited[state{}] = visite{0, 0}
++	var ans float64 = 100500 // max hop = 100; min speed = 1; 3*100*1 < 100500
++	visited[state{}] = visit{0, 0}
+ 	queue = append(queue, state{})
+ 
+ 	for len(queue) > 0 {
+-		s := queue[0]
++		st := queue[0]
+ 		queue = queue[1:]
+-		vis := visited[s]
++		vis := visited[st]
+ 
+ 		if debugEnable {
+-			log.Printf("vis: %+v s: %v ", vis, s)
++			log.Printf("vis: %+v s: %v ", vis, st)
+ 		}
+ 
+-		switch s.Place {
++		switch st.Place {
+ 		case 0: // house
+-			if s.F&(GroceriesDone|ParcelDone) == (GroceriesDone | ParcelDone) {
++			if st.F&deliveredMask == deliveredMask {
+ 				if debugEnable {
+ 					log.Println("bingo!", vis)
+ 				}
+-				ans = min(ans, vis.t)
++				ans = min(ans, vis.T)
+ 				break
+ 			}
+-			if s.F&GroceriesInHands != 0 {
+-				next := s
+-				next.F &^= GroceriesInHands
+-				next.F |= GroceriesDone
+-
+-				if visNext, ok := visited[next]; !ok || vis.t < visNext.t {
+-					queue = append(queue, next)
+-					visited[next] = visite{vis.h + 1, vis.t}
+-				}
++			if st.F&groceriesInHands != 0 {
++				next := st
++				next.F &^= groceriesInHands
++				next.F |= groceriesDelivered
++				rememberState(next, visit{vis.Hop + 1, vis.T})
+ 			}
+-			if s.F&ParcelInHands != 0 {
+-				next := s
+-				next.F &^= ParcelInHands
+-				next.F |= ParcelDone
+-
+-				if visNext, ok := visited[next]; !ok || vis.t < visNext.t {
+-					queue = append(queue, next)
+-					visited[next] = visite{vis.h + 1, vis.t}
+-				}
++			if st.F&parcelInHands != 0 {
++				next := st
++				next.F &^= parcelInHands
++				next.F |= parcelDelivered
++				rememberState(next, visit{vis.Hop + 1, vis.T})
+ 			}
+-			goToNext(s, vis, [2]Hop{{1, a}, {2, b}})
++			goToNextPlace(st, vis, [2]hop{{1, a}, {2, b}})
+ 
+ 		case 1: // supermarket
+-			if s.F&(GroceriesDone|GroceriesInHands) == 0 {
+-				next := s
+-				next.F |= GroceriesInHands
+-
+-				if visNext, ok := visited[next]; !ok || vis.t < visNext.t {
+-					queue = append(queue, next)
+-					visited[next] = visite{vis.h + 1, vis.t}
+-				}
++			if st.F&(groceriesDelivered|groceriesInHands) == 0 {
++				next := st
++				next.F |= groceriesInHands
++				rememberState(next, visit{vis.Hop + 1, vis.T})
+ 			}
+-			goToNext(s, vis, [2]Hop{{0, a}, {2, c}})
++			goToNextPlace(st, vis, [2]hop{{0, a}, {2, c}})
+ 
+ 		case 2: // pick-up point
+-			if s.F&(ParcelDone|ParcelInHands) == 0 {
+-				next := s
+-				next.F |= ParcelInHands
+-
+-				if visNext, ok := visited[next]; !ok || vis.t < visNext.t {
+-					queue = append(queue, next)
+-					visited[next] = visite{vis.h + 1, vis.t}
+-				}
++			if st.F&(parcelDelivered|parcelInHands) == 0 {
++				next := st
++				next.F |= parcelInHands
++				rememberState(next, visit{vis.Hop + 1, vis.T})
+ 			}
+-			goToNext(s, vis, [2]Hop{{0, b}, {1, c}})
++			goToNextPlace(st, vis, [2]hop{{0, b}, {1, c}})
+ 
+ 		default:
+-			panic(fmt.Errorf("unknown place %v", s.Place))
++			panic(fmt.Errorf("unknown place %v", st.Place))
+ 		}
+ 	}
+ 

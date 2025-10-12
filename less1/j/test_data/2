@@ -1,0 +1,6 @@
+5
+List p = new List(2,4,8,16)
+p.get(4)
+List q = new List(3,9,27)
+q.add(5)
+q.get(4)
