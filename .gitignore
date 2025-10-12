@@ -1,0 +1,9 @@
+.DS_Store
+bin/
+tmpl/
+bak/
+bak[1-9]/
+*.exe
+*.bin
+*.out
+*.pprof
