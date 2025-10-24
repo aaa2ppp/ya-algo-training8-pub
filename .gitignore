@@ -1,9 +1,12 @@
-.DS_Store
 bin/
-tmpl/
+tmp/
 bak/
-bak[1-9]/
+bak[0-9]/
 *.exe
 *.bin
 *.out
 *.pprof
+.DS_Store
+stat/
+__pycache__/
+*.pyc
