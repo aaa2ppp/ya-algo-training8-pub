@@ -1,0 +1,117 @@
+package main
+
+import (
+	"bytes"
+	"io"
+	"strings"
+	"testing"
+)
+
+func Test_run_solve(t *testing.T) {
+	test_run(t, solve)
+}
+
+func test_run(t *testing.T, solve solveFunc) {
+	type args struct {
+		in io.Reader
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantOut string
+		debug   bool
+	}{
+		{
+			"1",
+			args{strings.NewReader(`1 1 2
+0 1 1 0
+`)},
+			`1
+1
+`,
+			true,
+		},
+		{
+			"2",
+			args{strings.NewReader(`2 10 3
+0 1 2 0
+5 2 1 0
+`)},
+			`2
+1 2
+`,
+			true,
+		},
+		{
+			"7",
+			args{strings.NewReader(`2 11 3
+0 1 11 0
+0 2 11 1
+`)},
+			`1
+1`,
+			true,
+		},
+		{
+			"101 - траиктории совпадают, первая догоняет вторую",
+			args{strings.NewReader(`2 5 10
+0 1 2 2
+1 2 1 1
+`)},
+			`0`,
+			true,
+		},
+		{
+			"101.1 - траиктории совпадают, первая догоняет вторую",
+			args{strings.NewReader(`2 5 10
+0 1 2 0
+1 1 1 0
+`)},
+			`0`,
+			true,
+		},
+		{
+			"101.2 - траиктории совпадают, первая догоняет вторую",
+			args{strings.NewReader(`2 5 10
+0 1 0 2
+0 2 0 1
+`)},
+			`0`,
+			true,
+		},
+		{
+			"102 - траиктории паралельны",
+			args{strings.NewReader(`2 5 10
+0 1 2 2
+1 3 1 1
+`)},
+			`1
+1`,
+			true,
+		},
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			defer func(v bool) { debugEnable = v }(debugEnable)
+			debugEnable = tt.debug
+
+			out := &bytes.Buffer{}
+			run(tt.args.in, out, solve)
+			if gotOut := out.String(); trimLines(gotOut) != trimLines(tt.wantOut) {
+				t.Errorf("run() = %v, want %v", gotOut, tt.wantOut)
+			}
+		})
+	}
+}
+
+func trimLines(text string) string {
+	lines := strings.Split(text, "\n")
+	for i, line := range lines {
+		lines[i] = strings.TrimRight(line, " \t\r\n")
+	}
+	for n := len(lines); n > 0 && lines[n-1] == ""; n-- {
+		lines = lines[:n-1]
+	}
+	return strings.Join(lines, "\n")
+}
