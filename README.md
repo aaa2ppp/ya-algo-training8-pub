@@ -81,7 +81,7 @@
 
 ## 4. Темы 7–8: Префиксные суммы и два указателя. Сортировка событий  
 🔗 [Контест](https://contest.yandex.ru/contest/80942/enter) | ⏰ **Дедлайн**: 27.10.2025, 18:00 МСК  
-🎥 Разбор на [YouTube](https://youtube.com/live/TKkrXVI-2hs?feature=share) | [VK](https://youtube.com/live/TKkrXVI-2hs?feature=share)
+🎥 Разбор на [YouTube](https://youtube.com/live/TKkrXVI-2hs?feature=share) | [VK](https://vkvideo.ru/video-220652761_456239960)
 
 | № | Задача                              | Решение                     |
 |---|-------------------------------------|-----------------------------|
